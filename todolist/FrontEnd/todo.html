@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            loadTasks(); // Load tasks on page load
+        });
+
+        // Function to load existing tasks from the backend
+        async function loadTasks() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/api/tasks/", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const tasks = await response.json();
+                const taskList = document.getElementById("taskList");
+                taskList.innerHTML = ""; // Clear existing tasks
+
+                tasks.forEach(task => {
+                    const taskItem = document.createElement("li");
+                    taskItem.textContent = `${task.title} - ${task.description} |
+                        Deadline: ${task.deadline} |
+                        Priority: ${task.priority} |
+                        Completed: ${task.is_completed ? 'Yes' : 'No'}`;
+                    taskList.appendChild(taskItem);
+                });
+
+            } catch (error) {
+                console.error("Error loading tasks:", error);
+                alert("Failed to load tasks. Please try again.");
+            }
+        }
+
+        // Function to add a new task
+        async function addTask() {
+            const title = document.getElementById("taskTitle").value;
+            const description = document.getElementById("taskDescription").value;
+            const deadline = document.getElementById("taskDeadline").value;
+            const priority = document.getElementById("taskPriority").value;
+            const isCompleted = document.getElementById("taskCompleted").checked;
+
+            if (!title || !description || !deadline || !priority) {
+                alert("Please fill out all fields.");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/api/tasks/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        deadline: deadline,
+                        priority: priority,
+                        is_completed: isCompleted
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorMessage = await response.text();
+                    throw new Error(`HTTP error! Status: ${response.status} - ${errorMessage}`);
+                }
+
+                alert("Task added successfully!");
+                document.getElementById("taskForm").reset();
+                loadTasks();
+            } catch (error) {
+                console.error("Error adding task:", error);
+                alert("Failed to add task. Check console for details.");
+            }
+        }
+
+        // Function to logout
+        function logout() {
+            localStorage.removeItem("access");
+            localStorage.removeItem("refresh");
+            window.location.href = "index.html";
+        }
+    </script>
+</head>
+<body>
+    <h1>My To-Do List</h1>
+
+    <!-- Form to add new task -->
+    <div>
+        <h3>Add New Task</h3>
+        <form id="taskForm" onsubmit="event.preventDefault(); addTask();">
+            <label for="taskTitle">Title:</label>
+            <input type="text" id="taskTitle" required>
+            <br><br>
+
+            <label for="taskDescription">Description:</label>
+            <textarea id="taskDescription" required></textarea>
+            <br><br>
+
+            <label for="taskDeadline">Deadline:</label>
+            <input type="datetime-local" id="taskDeadline" required>
+            <br><br>
+
+            <label for="taskPriority">Priority:</label>
+            <select id="taskPriority" required>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+            <br><br>
+
+            <label for="taskCompleted">Completed:</label>
+            <input type="checkbox" id="taskCompleted">
+            <br><br>
+
+            <button type="submit">Add Task</button>
+        </form>
+    </div>
+
+    <!-- Task List -->
+    <h3>Existing Tasks</h3>
+    <ul id="taskList"></ul>
+
+    <!-- Logout button -->
+    <button onclick="logout()">Logout</button>
+</body>
+</html>
